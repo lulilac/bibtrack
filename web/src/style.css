@@ -311,3 +311,5 @@ main.dropping .table-wrap { opacity: .35; }
 .cand-title { font-weight: 600; font-size: 13px; line-height: 1.35; }
 .candidates > .btn.ghost { align-self: flex-start; }
 .segmented.wrap .seg { text-transform: none; }
+/* Long titles truncate themselves so the PDF badge and folder dots stay visible. */
+.c-title .t { display: inline-block; max-width: calc(100% - 64px); overflow: hidden; text-overflow: ellipsis; vertical-align: bottom; }
