@@ -194,3 +194,7 @@ Development: `npm run dev` runs the server with reload plus Vite on http://local
 - In-browser PDF reader with highlights stored as notes
 - Related-paper suggestions from your folders
 - Remote MCP endpoint (for ChatGPT and other web agents) with authentication
+
+## License
+
+[MIT](LICENSE)
