@@ -1,11 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { api, useLibrary, type Paper } from './api.ts';
+import { api, useLibrary, type Paper, type Project } from './api.ts';
 import Sidebar, { type View } from './components/Sidebar.tsx';
 import PaperTable, { type SortKey } from './components/PaperTable.tsx';
 import PaperDetail from './components/PaperDetail.tsx';
 import { projectPath, subtreeIds } from '../../shared/projects.ts';
 import { Icon } from './icons.tsx';
 import TagsDialog from './components/TagsDialog.tsx';
+import BibDialog from './components/BibDialog.tsx';
+import CheckDialog from './components/CheckDialog.tsx';
+import SettingsDialog from './components/SettingsDialog.tsx';
 
 const VIEW_KEY = 'bibtrack.view';
 
@@ -32,6 +35,13 @@ export default function App() {
   const [adding, setAdding] = useState('');
   const [busy, setBusy] = useState(false);
   const [tagsOpen, setTagsOpen] = useState(false);
+  const [checkOpen, setCheckOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [bibFor, setBibFor] = useState<Project | null>(null);
+  const [issueCount, setIssueCount] = useState(0);
+  const [fulltext, setFulltext] = useState<Map<string, string>>(new Map());
+  const [dropping, setDropping] = useState(false);
+  const pdfRef = useRef<HTMLInputElement>(null);
   const [toastMsg, setToastMsg] = useState<{ msg: string; undo?: () => void } | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
   const importRef = useRef<HTMLInputElement>(null);
@@ -48,14 +58,35 @@ export default function App() {
   // If the selected project was deleted (possibly on another machine), fall back to "all".
   useEffect(() => { if (lib && view.kind === 'project' && !project) setView({ kind: 'all' }); }, [lib, view, project]);
 
-  const papers = useMemo(() => {
-    if (!lib) return [];
+  // Full-text (PDF) matches come from the server, debounced; metadata matching stays instant in the browser.
+  useEffect(() => {
+    const q = query.trim();
+    if (q.length < 3) { setFulltext(new Map()); return; }
+    const t = setTimeout(() => api.fulltextSearch(q).then((r) => setFulltext(new Map(r.map((x) => [x.id, x.snippet]))), () => {}), 250);
+    return () => clearTimeout(t);
+  }, [query]);
+
+  // Number of real problems (duplicates, broken or missing metadata) for the sidebar badge.
+  useEffect(() => {
+    if (!lib) return;
+    const t = setTimeout(() => api.check().then((r) => setIssueCount(r.filter((i) => ['duplicate', 'suspicious', 'missing'].includes(i.kind)).length), () => {}), 500);
+    return () => clearTimeout(t);
+  }, [lib]);
+
+  const { papers, snippets } = useMemo(() => {
+    if (!lib) return { papers: [], snippets: new Map<string, string>() };
     const terms = query.toLowerCase().split(/\s+/).filter(Boolean);
     const inProject = view.kind === 'project' ? subtreeIds(lib.projects, view.id) : new Set<string>();
-    const list = lib.papers.filter((p) => matches(p, view, inProject) && (!terms.length || terms.every((t) => haystack(p).includes(t))));
+    const snippets = new Map<string, string>();
+    const list = lib.papers.filter((p) => {
+      if (!matches(p, view, inProject)) return false;
+      if (!terms.length || terms.every((t) => haystack(p).includes(t))) return true;
+      if (fulltext.has(p.id)) { snippets.set(p.id, fulltext.get(p.id)!); return true; }
+      return false;
+    });
     const val = (p: Paper) => (sort.key === 'authors' ? p.authors[0] ?? '' : String(p[sort.key] ?? '')).toLowerCase();
-    return list.sort((a, b) => val(a).localeCompare(val(b)) * sort.dir);
-  }, [lib, view, query, sort]);
+    return { papers: list.sort((a, b) => val(a).localeCompare(val(b)) * sort.dir), snippets };
+  }, [lib, view, query, sort, fulltext]);
 
   const current = lib?.papers.find((p) => p.id === selected) ?? null;
 
@@ -82,6 +113,23 @@ export default function App() {
     } finally {
       setBusy(false);
     }
+  };
+
+  // Bare PDFs: the server reads their DOI / arXiv ID and fills in the metadata.
+  const addPdfs = async (files: File[]) => {
+    const pdfs = files.filter((f) => f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf'));
+    if (!pdfs.length) return toast('Drop PDF files to add them');
+    for (const f of pdfs) {
+      toast(`Reading ${f.name}…`);
+      try {
+        const { paper, duplicate } = await api.addFromPdf(f, project?.id);
+        setSelected(paper.id);
+        toast(duplicate ? `Already in library: “${paper.title.slice(0, 50)}”` : `Added “${paper.title.slice(0, 60)}”`);
+      } catch (e) {
+        toast(`${f.name}: ${(e as Error).message}`);
+      }
+    }
+    refresh();
   };
 
   const importBib = async (file?: File) => {
@@ -122,8 +170,14 @@ export default function App() {
 
   return (
     <div className={`app ${current ? 'has-detail' : ''}`}>
-      <Sidebar lib={lib} view={view} setView={(v) => { setView(v); setSelected(null); }} onOpenTags={() => setTagsOpen(true)} />
-      <main>
+      <Sidebar lib={lib} view={view} setView={(v) => { setView(v); setSelected(null); }} onOpenTags={() => setTagsOpen(true)}
+        onOpenCheck={() => setCheckOpen(true)} onOpenSettings={() => setSettingsOpen(true)} onBib={setBibFor} issueCount={issueCount} />
+      <main
+        className={dropping ? 'dropping' : ''}
+        onDragOver={(e) => { if (e.dataTransfer.types.includes('Files')) { e.preventDefault(); setDropping(true); } }}
+        onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setDropping(false); }}
+        onDrop={(e) => { e.preventDefault(); setDropping(false); addPdfs([...e.dataTransfer.files]); }}
+      >
         <div className="toolbar">
           <h2>{title} <span className="muted">{papers.length}</span></h2>
           <label className="input-icon search">
@@ -139,19 +193,28 @@ export default function App() {
             <button className="btn primary" disabled={busy || !adding.trim()}>{busy ? 'Adding…' : 'Add'}</button>
           </form>
           <div className="toolbar-actions">
-            <a className="btn ghost icon" href={exportUrl} title="Export BibTeX for this project (or the whole library)">{Icon.download}</a>
+            <button className="btn ghost icon" onClick={() => pdfRef.current?.click()} title="Add papers from PDF files (or drop PDFs on the list)">{Icon.filePlus}</button>
+            {project
+              ? <button className="btn ghost bib-btn" onClick={() => setBibFor(project)} title="BibTeX for this folder">{'{}'} .bib</button>
+              : <a className="btn ghost icon" href={exportUrl} title="Export BibTeX for the whole library">{Icon.download}</a>}
             <button className="btn ghost" onClick={() => importRef.current?.click()} title="Import a .bib file (e.g. exported from Zotero)">{Icon.upload}</button>
           </div>
           <input ref={importRef} type="file" accept=".bib,text/plain" hidden onChange={(e) => { importBib(e.target.files?.[0]); e.target.value = ''; }} />
+          <input ref={pdfRef} type="file" accept="application/pdf" multiple hidden onChange={(e) => { addPdfs([...(e.target.files ?? [])]); e.target.value = ''; }} />
         </div>
         {error && <div className="banner error">{error}</div>}
-        <PaperTable papers={papers} projects={lib.projects} selected={selected} onSelect={setSelected} sort={sort} setSort={setSort} />
+        <PaperTable papers={papers} projects={lib.projects} selected={selected} onSelect={setSelected} sort={sort} setSort={setSort} snippets={snippets} />
+        {dropping && <div className="drop-hint">Drop PDFs to add them{project ? ` to ${project.name}` : ''}</div>}
       </main>
       {current && <PaperDetail key={current.id} paper={current} projects={lib.projects} onDelete={remove} toast={toast} />}
       {tagsOpen && (
         <TagsDialog lib={lib} active={view.kind === 'tag' ? view.tag : undefined} onClose={() => setTagsOpen(false)}
           onPick={(tag) => { setView(tag ? { kind: 'tag', tag } : { kind: 'all' }); setSelected(null); }} />
       )}
+      {bibFor && <BibDialog lib={lib} project={bibFor} onClose={() => setBibFor(null)} toast={toast} />}
+      {checkOpen && <CheckDialog lib={lib} onClose={() => setCheckOpen(false)} toast={toast}
+        onOpen={(id) => { setView({ kind: 'all' }); setQuery(''); setSelected(id); }} />}
+      {settingsOpen && <SettingsDialog lib={lib} onClose={() => setSettingsOpen(false)} toast={toast} />}
       {toastMsg && (
         <div className="toast">
           {toastMsg.msg}

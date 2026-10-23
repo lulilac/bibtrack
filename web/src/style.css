@@ -270,3 +270,44 @@ details > label, details > .row { margin-top: 10px; }
   .has-detail .toolbar h2 { max-width: none; flex: 1; }
   .has-detail .addbox { order: 5; flex-basis: 100%; }
 }
+
+/* ---------- dialogs: BibTeX, settings, check ---------- */
+.modal.wide { width: min(720px, calc(100vw - 32px)); max-height: 80vh; }
+.modal-text { margin: 0; line-height: 1.5; }
+.modal-text code, .snippet code { font-size: 12px; background: var(--bg-input); padding: 1px 5px; border-radius: 4px; word-break: break-all; }
+.modal-actions { display: flex; gap: 8px; }
+.modal-field { display: flex; flex-direction: column; gap: 5px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.modal-field input { font-size: 14px; font-weight: 400; text-transform: none; letter-spacing: 0; color: var(--fg); font-family: ui-monospace, monospace; }
+.bib-preview, .bib-source { font-family: ui-monospace, 'JetBrains Mono', monospace; font-size: 12px; line-height: 1.5; white-space: pre; }
+.bib-preview { min-height: 160px; }
+.segmented.wrap { flex-wrap: wrap; align-self: flex-start; }
+.modal-list.issues li.issue { flex-direction: column; align-items: stretch; gap: 6px; cursor: default; padding: 10px; border-bottom: 1px solid var(--border); border-radius: 0; }
+.modal-list.issues li.issue:hover { background: none; }
+.issue-paper { display: flex; flex-direction: column; gap: 2px; }
+.issue-paper .btn { align-self: flex-start; margin-top: 4px; height: 28px; font-size: 12px; }
+.issue-what { color: var(--danger); }
+button.link { background: none; border: none; padding: 0; text-align: left; color: var(--fg); font-weight: 500; cursor: pointer; }
+button.link:hover { text-decoration: underline; }
+
+/* sidebar extras */
+.count.badge { background: var(--danger); color: #fff; border-radius: 10px; padding: 0 7px; font-weight: 600; font-size: 11px; }
+.foot-actions { display: flex; align-items: center; gap: 6px; }
+.btn.small-icon { width: 28px; height: 28px; }
+.btn.small-icon svg { width: 15px; height: 15px; }
+.proj-actions .bib-action { font-family: ui-monospace, monospace; font-size: 11px; width: auto; padding: 0 5px; }
+.bib-btn { font-family: ui-monospace, monospace; font-size: 12px; }
+
+/* full-text matches + PDF drop */
+.snippet { display: block; font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+.in-pdf { font-size: 9.5px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--reading); border: 1px solid currentColor; border-radius: 4px; padding: 0 4px; margin-right: 6px; }
+main { position: relative; }
+main.dropping .table-wrap { opacity: .35; }
+.drop-hint { position: absolute; inset: 70px 20px 20px; border: 2px dashed var(--fg); border-radius: 14px; display: grid; place-items: center; font-size: 16px; font-weight: 600; pointer-events: none; }
+
+/* detail extras */
+.row-actions { display: flex; gap: 6px; margin-top: 6px; text-transform: none; letter-spacing: 0; }
+.candidates { display: flex; flex-direction: column; gap: 8px; border: 1px solid var(--border); border-radius: 10px; padding: 10px; }
+.candidate { display: flex; align-items: center; gap: 10px; }
+.cand-title { font-weight: 600; font-size: 13px; line-height: 1.35; }
+.candidates > .btn.ghost { align-self: flex-start; }
+.segmented.wrap .seg { text-transform: none; }

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
-import type { Capture, Library, Paper, Project } from '../../shared/types.ts';
+import type { Capture, Issue, Library, Paper, Project } from '../../shared/types.ts';
 
-export type { Capture, Library, Paper, Project };
+export type { Capture, Issue, Library, Paper, Project };
 
 async function req<T>(method: string, url: string, body?: unknown, raw = false): Promise<T> {
   const res = await fetch(url, {
@@ -30,6 +30,20 @@ export const api = {
   deleteProject: (id: string) => req<{ ok: true }>('DELETE', `/api/projects/${id}`),
   importBib: (text: string, project?: string) =>
     req<{ added: number; merged: number }>('POST', `/api/import${project ? `?project=${project}` : ''}`, text, true),
+  addFromPdf: (file: Blob, project?: string) =>
+    req<{ paper: Paper; duplicate: boolean }>('POST', `/api/papers/from-pdf${project ? `?project=${project}` : ''}`, file, true),
+  exportBib: (opts: { project?: string; ids?: string[] }) =>
+    fetch(`/api/export.bib?${new URLSearchParams({ ...(opts.project ? { project: opts.project } : {}), ...(opts.ids ? { ids: opts.ids.join(',') } : {}) })}`)
+      .then((r) => r.text()),
+  updateBibtex: (id: string, bibtex: string) => req<Paper>('PUT', `/api/papers/${id}/bibtex`, bibtex, true),
+  metadataCandidates: (id: string) => req<Partial<Paper>[]>('GET', `/api/papers/${id}/metadata-candidates`),
+  mergePapers: (keep: string, merge: string) => req<Paper>('POST', '/api/papers/merge', { keep, merge }),
+  fulltextSearch: (q: string) => req<{ id: string; snippet: string }[]>('GET', `/api/search?q=${encodeURIComponent(q)}`),
+  check: () => req<Issue[]>('GET', '/api/check'),
+  info: () => req<{ dir: string; bibDir: string }>('GET', '/api/info'),
+  settings: () => req<{ citekeyPattern: string }>('GET', '/api/settings'),
+  updateSettings: (s: { citekeyPattern: string }) => req<{ citekeyPattern: string }>('PATCH', '/api/settings', s),
+  regenerateKeys: () => req<{ changed: number }>('POST', '/api/settings/regenerate-keys'),
 };
 
 // After a rebuild + server restart, reload so an old tab never runs stale code.

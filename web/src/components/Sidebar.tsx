@@ -23,11 +23,15 @@ export const sameView = (a: View, b: View) => JSON.stringify(a) === JSON.stringi
 
 const COLLAPSED_KEY = 'bibtrack.collapsed';
 
-export default function Sidebar({ lib, view, setView, onOpenTags }: {
+export default function Sidebar({ lib, view, setView, onOpenTags, onOpenCheck, onOpenSettings, onBib, issueCount }: {
   lib: Library;
   view: View;
   setView: (v: View) => void;
   onOpenTags: () => void;
+  onOpenCheck: () => void;
+  onOpenSettings: () => void;
+  onBib: (p: Project) => void;
+  issueCount: number;
 }) {
   const [newName, setNewName] = useState('');
   const [moving, setMoving] = useState<Project | null>(null);
@@ -82,6 +86,11 @@ export default function Sidebar({ lib, view, setView, onOpenTags }: {
           <span className="grow">{view.kind === 'tag' ? `#${view.tag}` : 'Tags'}</span>
           <span className="count">{tagCount}</span>
         </li>
+        <li onClick={onOpenCheck} title="Duplicates, missing and broken metadata">
+          <span className="nav-icon">{Icon.check}</span>
+          <span className="grow">Check library</span>
+          {issueCount > 0 && <span className="count badge">{issueCount}</span>}
+        </li>
       </ul>
       <h4>Projects</h4>
       <ul>
@@ -115,6 +124,7 @@ export default function Sidebar({ lib, view, setView, onOpenTags }: {
                 <button title="New sub-folder" onClick={() => addProject(p.id)}>+</button>
                 <button title="Rename" onClick={() => setEditing(p.id)}>✎</button>
                 <button title="Move to another folder" onClick={() => setMoving(p)}>↳</button>
+                <button title="BibTeX for this folder" className="bib-action" onClick={() => onBib(p)}>{'{}'}</button>
                 <button
                   title="Delete project and its sub-folders (papers are kept)"
                   onClick={() => {
@@ -137,7 +147,10 @@ export default function Sidebar({ lib, view, setView, onOpenTags }: {
       {moving && <MoveDialog lib={lib} project={moving} onClose={() => setMoving(null)} />}
       <div className="sidebar-foot">
         <a href="/bookmarklet">Bookmarklet</a>
-        <ThemeSwitch />
+        <span className="foot-actions">
+          <button className="btn ghost icon small-icon" title="Settings" onClick={onOpenSettings}>{Icon.settings}</button>
+          <ThemeSwitch />
+        </span>
       </div>
     </nav>
   );

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { api, splitList, type Paper, type Project } from '../api.ts';
+import { api, authorsShort, splitList, type Paper, type Project } from '../api.ts';
 import ProjectPicker from './ProjectPicker.tsx';
 import { Icon } from '../icons.tsx';
 
@@ -39,6 +39,63 @@ function Field({ label, value, onSave, multiline, rows = 2, debounce, className 
   );
 }
 
+// Raw BibTeX of the entry, editable (JabRef's "BibTeX source" tab). Reloads when the paper changes elsewhere.
+function BibtexSource({ paper, toast }: { paper: Paper; toast: (msg: string) => void }) {
+  const [text, setText] = useState('');
+  const [dirty, setDirty] = useState(false);
+  useEffect(() => { if (!dirty) api.exportBib({ ids: [paper.id] }).then((t) => setText(t.trim())); }, [paper.updatedAt, dirty]);
+  const save = () => api.updateBibtex(paper.id, text).then(() => { setDirty(false); toast('BibTeX saved'); }, (e) => toast(e.message));
+  return (
+    <label>
+      BibTeX source
+      <textarea className="bib-source" rows={9} spellCheck={false} value={text}
+        onChange={(e) => { setText(e.target.value); setDirty(true); }}
+        onKeyDown={(e) => { if (e.key === 's' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); save(); } }} />
+      {dirty && (
+        <span className="row-actions">
+          <button className="btn primary" onClick={save}>Save BibTeX</button>
+          <button className="btn ghost" onClick={() => setDirty(false)}>Discard</button>
+        </span>
+      )}
+    </label>
+  );
+}
+
+// Looks up correct metadata (DOI/arXiv ID in the PDF, else Crossref) and lets you apply a candidate.
+function MetadataFinder({ paper, save, toast }: { paper: Paper; save: (c: Partial<Paper>) => Promise<unknown>; toast: (msg: string) => void }) {
+  const [state, setState] = useState<'idle' | 'busy' | Partial<Paper>[]>('idle');
+  const find = () => {
+    setState('busy');
+    api.metadataCandidates(paper.id).then((c) => { setState(c); if (!c.length) toast('No match found'); }, (e) => { setState('idle'); toast(e.message); });
+  };
+  const apply = async (c: Partial<Paper>) => {
+    const fields: Partial<Paper> = {};
+    for (const k of ['title', 'year', 'venue', 'doi', 'arxivId', 'url', 'type'] as const) if (c[k]) fields[k] = c[k] as string;
+    if (c.authors?.length) fields.authors = c.authors;
+    if (c.abstract && !paper.abstract) fields.abstract = c.abstract;
+    if (c.pdfUrl && !paper.pdfUrl) fields.pdfUrl = c.pdfUrl;
+    await save(fields);
+    setState('idle');
+    toast('Metadata updated');
+  };
+  if (state === 'idle' || state === 'busy')
+    return <button className="btn" onClick={find} disabled={state === 'busy'}>{Icon.wand}{state === 'busy' ? 'Searching…' : 'Find metadata'}</button>;
+  return (
+    <div className="candidates">
+      {state.map((c, i) => (
+        <div key={i} className="candidate">
+          <div className="grow">
+            <div className="cand-title">{c.title}</div>
+            <div className="muted small">{[authorsShort(c.authors ?? []), c.year, c.venue, c.doi].filter(Boolean).join(' · ')}</div>
+          </div>
+          <button className="btn primary" onClick={() => apply(c)}>Apply</button>
+        </div>
+      ))}
+      <button className="btn ghost" onClick={() => setState('idle')}>Cancel</button>
+    </div>
+  );
+}
+
 export default function PaperDetail({ paper, projects, onDelete, toast }: {
   paper: Paper;
   projects: Project[];
@@ -48,6 +105,7 @@ export default function PaperDetail({ paper, projects, onDelete, toast }: {
   const [dragging, setDragging] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
   const save = (changes: Partial<Paper>) => api.updatePaper(paper.id, changes).catch((e) => toast(e.message));
+  const incomplete = !paper.authors.length || !paper.year || (!paper.doi && !paper.arxivId);
 
   const upload = async (file?: File) => {
     if (!file) return;
@@ -92,6 +150,7 @@ export default function PaperDetail({ paper, projects, onDelete, toast }: {
         </span>
       </div>
 
+      {incomplete && <MetadataFinder key={paper.id} paper={paper} save={save} toast={toast} />}
       <Field label="" className="title-field" value={paper.title} onSave={(title) => save({ title })} multiline rows={3} />
       <Field label="Authors (separated by ;)" value={paper.authors.join('; ')}
         onSave={(v) => save({ authors: v.split(/\s*;\s*/).filter(Boolean) })} />
@@ -118,6 +177,8 @@ export default function PaperDetail({ paper, projects, onDelete, toast }: {
         <Field label="arXiv ID" value={paper.arxivId} onSave={(arxivId) => save({ arxivId })} />
         <Field label="URL" value={paper.url} onSave={(url) => save({ url })} />
         <Field label="PDF URL" value={paper.pdfUrl} onSave={(pdfUrl) => save({ pdfUrl })} />
+        <BibtexSource paper={paper} toast={toast} />
+        {!incomplete && <MetadataFinder paper={paper} save={save} toast={toast} />}
       </details>
       <p className="muted small">Added {new Date(paper.addedAt).toLocaleString()} · drop a PDF here to attach it</p>
     </aside>

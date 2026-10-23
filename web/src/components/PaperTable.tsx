@@ -3,13 +3,14 @@ import { authorsShort, type Paper, type Project } from '../api.ts';
 
 export type SortKey = 'title' | 'authors' | 'year' | 'venue' | 'status' | 'addedAt';
 
-export default function PaperTable({ papers, projects, selected, onSelect, sort, setSort }: {
+export default function PaperTable({ papers, projects, selected, onSelect, sort, setSort, snippets }: {
   papers: Paper[];
   projects: Project[];
   selected: string | null;
   onSelect: (id: string) => void;
   sort: { key: SortKey; dir: 1 | -1 };
   setSort: (s: { key: SortKey; dir: 1 | -1 }) => void;
+  snippets?: Map<string, string>; // full-text matches: paper id -> text around the match
 }) {
   const body = useRef<HTMLTableSectionElement>(null);
   const projById = new Map(projects.map((p) => [p.id, p]));
@@ -49,6 +50,9 @@ export default function PaperTable({ papers, projects, selected, onSelect, sort,
                 {p.projects.map((id) => projById.get(id)).filter(Boolean).map((pr) => (
                   <span key={pr!.id} className="dot" title={pr!.name} style={{ background: pr!.color }} />
                 ))}
+                {snippets?.has(p.id) && (
+                  <span className="snippet"><span className="in-pdf">in PDF</span>{snippets.get(p.id)}</span>
+                )}
               </td>
               <td className="c-authors">{authorsShort(p.authors)}</td>
               <td className="c-year">{p.year}</td>
