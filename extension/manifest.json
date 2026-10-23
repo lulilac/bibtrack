@@ -1,0 +1,22 @@
+{
+  "manifest_version": 3,
+  "name": "bibtrack",
+  "version": "0.1.0",
+  "description": "Save the paper you are reading to your bibtrack library.",
+  "icons": { "48": "icons/48.png", "96": "icons/96.png", "128": "icons/128.png" },
+  "action": {
+    "default_title": "Save to bibtrack (Alt+Shift+B)",
+    "default_popup": "popup.html",
+    "default_icon": { "16": "icons/16.png", "32": "icons/32.png", "48": "icons/48.png" }
+  },
+  "commands": {
+    "_execute_action": { "suggested_key": { "default": "Alt+Shift+B" } }
+  },
+  "permissions": ["activeTab", "scripting"],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; frame-src http://localhost:5577 http://127.0.0.1:5577"
+  },
+  "browser_specific_settings": {
+    "gecko": { "id": "bibtrack@local", "strict_min_version": "115.0" }
+  }
+}

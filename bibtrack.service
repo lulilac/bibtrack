@@ -1,0 +1,14 @@
+[Unit]
+Description=bibtrack paper library
+After=network-online.target
+
+[Service]
+# Set this to where you cloned bibtrack (see README).
+WorkingDirectory=%h/bibtrack
+ExecStart=/usr/bin/npm start
+Restart=on-failure
+# Environment=BIBTRACK_DIR=%h/Dropbox/bibtrack
+# Environment=PORT=5577
+
+[Install]
+WantedBy=default.target
