@@ -1,4 +1,7 @@
 import type { Capture, Paper } from '../shared/types.ts';
+import { formatKey } from '../shared/citekey.ts';
+
+export { formatKey };
 
 const UA = 'bibtrack/0.1 (personal paper manager; mailto:none)';
 
@@ -43,10 +46,7 @@ const crossrefType: Record<string, string> = {
   report: 'techreport',
 };
 
-export async function fromCrossref(doi: string): Promise<Partial<Paper> | null> {
-  const res = await fetchWithTimeout(`https://api.crossref.org/works/${encodeURIComponent(doi)}`);
-  if (!res.ok) return null;
-  const m = (await res.json()).message;
+function crossrefToPaper(m: any): Partial<Paper> {
   const pdf = (m.link ?? []).find((l: any) => l['content-type'] === 'application/pdf')?.URL ?? '';
   const year = (m.issued ?? m.published ?? m['published-print'] ?? m['published-online'])?.['date-parts']?.[0]?.[0];
   return {
@@ -55,11 +55,24 @@ export async function fromCrossref(doi: string): Promise<Partial<Paper> | null> 
     authors: (m.author ?? []).map((a: any) => (a.family ? `${a.family}${a.given ? ', ' + a.given : ''}` : a.name ?? '')).filter(Boolean),
     year: year ? String(year) : '',
     venue: stripTags(m['container-title']?.[0] ?? m['event']?.name ?? ''),
-    doi,
-    url: m.URL ?? `https://doi.org/${doi}`,
+    doi: m.DOI ?? '',
+    url: m.URL ?? (m.DOI ? `https://doi.org/${m.DOI}` : ''),
     pdfUrl: pdf,
     abstract: stripTags(m.abstract ?? ''),
   };
+}
+
+export async function fromCrossref(doi: string): Promise<Partial<Paper> | null> {
+  const res = await fetchWithTimeout(`https://api.crossref.org/works/${encodeURIComponent(doi)}`);
+  if (!res.ok) return null;
+  return { ...crossrefToPaper((await res.json()).message), doi };
+}
+
+// Free-text search (title, optionally + an author name): best matches first.
+export async function searchCrossref(query: string, rows = 3): Promise<Partial<Paper>[]> {
+  const res = await fetchWithTimeout(`https://api.crossref.org/works?rows=${rows}&query.bibliographic=${encodeURIComponent(query)}`);
+  if (!res.ok) return [];
+  return ((await res.json()).message?.items ?? []).map(crossrefToPaper).filter((p: Partial<Paper>) => p.title);
 }
 
 export async function fromArxiv(id: string): Promise<Partial<Paper> | null> {
@@ -148,16 +161,10 @@ export async function enrich(c: Capture): Promise<Partial<Paper>> {
 
 // ---------- BibTeX ----------
 
-const STOP = new Set(['a', 'an', 'the', 'on', 'of', 'for', 'in', 'to', 'and', 'with', 'towards', 'toward', 'via', 'from', 'is', 'are']);
-
-const ascii = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-zA-Z0-9]/g, '');
-
-export function makeKey(p: Partial<Paper>, taken: Set<string>) {
-  const last = ascii((p.authors?.[0] ?? 'anon').split(',')[0]).toLowerCase() || 'anon';
-  const word = (p.title ?? '').toLowerCase().split(/\s+/).map(ascii).find((w) => w && !STOP.has(w)) ?? '';
-  const base = `${last}${p.year ?? ''}${word}`;
+export function makeKey(p: Partial<Paper>, taken: Set<string>, pattern?: string) {
+  const base = formatKey(p, pattern) || 'anon';
   let key = base;
-  for (let i = 0; taken.has(key); i++) key = base + String.fromCharCode(97 + i);
+  for (let i = 0; taken.has(key); i++) key = base + String.fromCharCode(97 + (i % 26)) + (i >= 26 ? Math.floor(i / 26) : '');
   return key;
 }
 

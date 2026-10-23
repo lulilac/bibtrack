@@ -24,6 +24,7 @@ export function mergeLibraries(a: Library, b: Library): Library {
     projects: mergeList(a.projects, b.projects ?? []),
     papers: mergeList(a.papers, b.papers ?? []),
     deleted,
+    settings: a.settings ?? b.settings,
   };
 }
 

@@ -38,7 +38,15 @@ export interface Library {
   papers: Paper[];
   // tombstones: id -> deletion time, so deletions survive merges of Dropbox conflicted copies
   deleted: Record<string, string>;
+  settings?: LibrarySettings;
 }
+
+export interface LibrarySettings {
+  // JabRef-style citation key pattern, e.g. "[auth:lower][year][veryshorttitle:lower]"
+  citekeyPattern?: string;
+}
+
+export const DEFAULT_CITEKEY_PATTERN = '[auth:lower][year][veryshorttitle:lower]';
 
 // What the bookmarklet / "add" box sends
 export interface Capture {
@@ -53,3 +61,11 @@ export interface Capture {
   abstract?: string;
   notes?: string;
 }
+
+// A problem found by the library check (JabRef-style integrity check).
+export type Issue =
+  | { kind: 'duplicate'; ids: string[]; reason: string }
+  | { kind: 'missing'; id: string; fields: string[] }
+  | { kind: 'suspicious'; id: string; field: string; value: string }
+  | { kind: 'no-pdf'; id: string }
+  | { kind: 'no-identifier'; id: string };

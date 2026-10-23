@@ -27,6 +27,6 @@ export function blankPaper(p: Partial<Paper>, lib: Library): Paper {
     ...Object.fromEntries(Object.entries(p).filter(([, v]) => v !== undefined)),
   };
   if (!paper.bibtexKey || lib.papers.some((x) => x.bibtexKey === paper.bibtexKey))
-    paper.bibtexKey = makeKey(paper, new Set(lib.papers.map((x) => x.bibtexKey)));
+    paper.bibtexKey = makeKey(paper, new Set(lib.papers.map((x) => x.bibtexKey)), lib.settings?.citekeyPattern);
   return paper;
 }
