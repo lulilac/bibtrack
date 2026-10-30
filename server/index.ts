@@ -8,13 +8,22 @@ import type { Paper } from '../shared/types.ts';
 
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const PORT = Number(process.env.PORT ?? 5577);
+const HOST = process.env.HOST ?? '127.0.0.1';
 const lib = new LibraryService(libraryDir());
 const app = express();
 
-// Only accept writes from our own pages (blocks other websites from POSTing to localhost).
+// Origins allowed to write: always this machine, plus BIBTRACK_ORIGIN (comma-separated) when
+// bibtrack is served from somewhere else, e.g. https://bibtrack.example.org.
+const extraOrigins = new Set(
+  (process.env.BIBTRACK_ORIGIN ?? '').split(',').map((s) => s.trim()).filter(Boolean),
+);
+const allowedOrigin = (o: string) =>
+  /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(o) || extraOrigins.has(o);
+
+// Only accept writes from our own pages (blocks other websites from POSTing to the server).
 app.use((req, res, next) => {
   const origin = req.headers.origin;
-  if (req.method !== 'GET' && origin && !/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
+  if (req.method !== 'GET' && origin && !allowedOrigin(origin)) {
     return res.status(403).json({ error: 'forbidden origin' });
   }
   next();
@@ -118,7 +127,7 @@ app.get(['/', '/add', '/bookmarklet'], (_req, res) => {
   fs.existsSync(index) ? res.sendFile(index) : res.status(500).send('Web app not built: run `npm run build`');
 });
 
-app.listen(PORT, '127.0.0.1', () => {
+app.listen(PORT, HOST, () => {
   console.log(`bibtrack running at http://localhost:${PORT}  (library: ${lib.store.file})`);
   // Extract text of PDFs not indexed yet, in the background.
   void lib.indexMissing();

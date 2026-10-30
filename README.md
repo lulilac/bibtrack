@@ -86,6 +86,11 @@ npm start                      # → http://localhost:5577
 The library goes to `~/Dropbox/bibtrack` by default. Set `BIBTRACK_DIR` to use another folder, and `PORT` to change
 the port (5577). Use the same port on every machine, because the browser extension points at it.
 
+The server listens on `127.0.0.1` only. To serve it from a container or another machine, set `HOST` (e.g. `0.0.0.0`)
+and `BIBTRACK_ORIGIN` to the origin the web app is served from (e.g. `https://bibtrack.example.org`), otherwise every
+write is rejected as a forbidden origin. bibtrack has no login of its own, so anything beyond localhost needs a
+password in front of it.
+
 ### Start automatically at login (Linux, systemd)
 
 ```sh

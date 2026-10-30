@@ -1,0 +1,14 @@
+.git
+.gitignore
+node_modules
+web/dist
+web-ext-artifacts
+docs
+*.log
+.amo-upload-uuid
+bibtrack.service
+README.md
+AGENTS.md
+LICENSE
+Dockerfile
+.dockerignore
