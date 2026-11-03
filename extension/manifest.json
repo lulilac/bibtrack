@@ -12,7 +12,7 @@
   "commands": {
     "_execute_action": { "suggested_key": { "default": "Alt+Shift+B" } }
   },
-  "permissions": ["activeTab", "scripting"],
+  "permissions": ["activeTab", "scripting", "storage"],
   "content_security_policy": {
     "extension_pages": "script-src 'self'; frame-src http://localhost:5577 http://127.0.0.1:5577"
   },
