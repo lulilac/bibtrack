@@ -1,11 +1,13 @@
 import { capturePage } from './capture.js';
 
 // Where the server lives. Kept in storage rather than hardcoded, so the same add-on
-// works against a local server or a remote one; set it from the popup when the server
-// cannot be reached. A local server is framed inside the popup (see frame-src in
-// manifest.json); a remote one is opened in a tab, because it sits behind HTTP auth and
-// Firefox refuses to show an auth prompt inside a cross-origin frame.
+// works against a local server or a remote one; set it from the popup, or in the add-on's
+// preferences. A local server is framed inside the toolbar popup (see frame-src in
+// manifest.json). A remote one gets its own small window instead: it sits behind HTTP auth,
+// and Firefox refuses to show an auth prompt - or to offer to save the password - inside a
+// cross-origin frame. A window keeps the dialog feel that a tab loses.
 const DEFAULT_SERVER = 'http://localhost:5577';
+const WINDOW_SIZE = { width: 540, height: 680 };
 const ext = globalThis.browser ?? globalThis.chrome;
 const msg = document.getElementById('msg');
 const frame = document.getElementById('frame');
@@ -28,6 +30,19 @@ async function capture(tab) {
   return { url: tab.url, title: tab.title, pdfUrl: pdf ? tab.url : '' };
 }
 
+// Centred on the browser window the user is looking at, so it reads as a dialog.
+async function openWindow(url) {
+  const size = { ...WINDOW_SIZE };
+  try {
+    const win = await ext.windows.getCurrent();
+    size.left = Math.round(win.left + (win.width - size.width) / 2);
+    size.top = Math.round(win.top + (win.height - size.height) / 2);
+  } catch {
+    // No position available (some platforms): let the browser place it.
+  }
+  await ext.windows.create({ url, type: 'popup', ...size });
+}
+
 function askForServer() {
   const hint = isLocal(server)
     ? 'Start it with npm start, or point the add-on at a remote bibtrack.'
@@ -44,7 +59,7 @@ async function main() {
   server = clean((await ext.storage.local.get('server')).server || DEFAULT_SERVER);
   const [tab] = await ext.tabs.query({ active: true, currentWindow: true });
   // Only probe a local server. A remote one is behind a password, so probing it would ask for
-  // credentials once for the probe and again for the tab; just open the tab and let the
+  // credentials once for the probe and again for the window itself; just open it and let the
   // browser report any problem. Change the address in about:addons if it is wrong.
   const [data, up] = await Promise.all([
     capture(tab),
@@ -54,7 +69,7 @@ async function main() {
 
   const target = `${server}/add#${encodeURIComponent(JSON.stringify(data))}`;
   if (!isLocal(server)) {
-    await ext.tabs.create({ url: target });
+    await openWindow(target);
     return window.close();
   }
   frame.src = target;

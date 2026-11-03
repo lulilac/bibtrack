@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "bibtrack",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Save the paper you are reading to your bibtrack library.",
   "icons": { "48": "icons/48.png", "96": "icons/96.png", "128": "icons/128.png" },
   "action": {
