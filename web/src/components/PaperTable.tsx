@@ -1,7 +1,9 @@
 import { useEffect, useRef } from 'react';
 import { authorsShort, type Paper, type Project } from '../api.ts';
+import { Icon, KIND_ICON } from '../icons.tsx';
+import { KIND_LABEL, kindOf } from '../../../shared/kinds.ts';
 
-export type SortKey = 'title' | 'authors' | 'year' | 'venue' | 'status' | 'addedAt';
+export type SortKey = 'title' | 'authors' | 'year' | 'venue' | 'status' | 'addedAt' | 'kind';
 
 export default function PaperTable({ papers, projects, selected, onSelect, sort, setSort, snippets }: {
   papers: Paper[];
@@ -25,7 +27,7 @@ export default function PaperTable({ papers, projects, selected, onSelect, sort,
     </th>
   );
 
-  if (!papers.length) return <div className="empty">No papers here yet. Paste a DOI / arXiv ID / URL above, or use the bookmarklet.</div>;
+  if (!papers.length) return <div className="empty">Nothing here yet. Paste a DOI / arXiv ID / URL above, use the bookmarklet, or jot down an idea.</div>;
 
   return (
     <div className="table-wrap">
@@ -33,6 +35,7 @@ export default function PaperTable({ papers, projects, selected, onSelect, sort,
         <thead>
           <tr>
             <Th k="status" label="" className="c-status" />
+            <Th k="kind" label="" className="c-kind" />
             <Th k="title" label="Title" />
             <Th k="authors" label="Authors" className="c-authors" />
             <Th k="year" label="Year" className="c-year" />
@@ -44,6 +47,7 @@ export default function PaperTable({ papers, projects, selected, onSelect, sort,
           {papers.map((p) => (
             <tr key={p.id} className={p.id === selected ? 'sel' : ''} onClick={() => onSelect(p.id)}>
               <td className={`c-status st-${p.status}`} title={p.status}><span className="st" /></td>
+              <td className={`c-kind k-${kindOf(p)}`} title={KIND_LABEL[kindOf(p)]}>{Icon[KIND_ICON[kindOf(p)]]}</td>
               <td className="c-title">
                 <span className="t">{p.title || <em>(untitled)</em>}</span>
                 {p.pdfFile && <span className="pdf-badge" title="PDF saved">PDF</span>}

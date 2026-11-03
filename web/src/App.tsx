@@ -5,6 +5,7 @@ import PaperTable, { type SortKey } from './components/PaperTable.tsx';
 import PaperDetail from './components/PaperDetail.tsx';
 import { projectPath, subtreeIds } from '../../shared/projects.ts';
 import { Icon } from './icons.tsx';
+import { KIND_PLURAL, kindOf } from '../../shared/kinds.ts';
 import TagsDialog from './components/TagsDialog.tsx';
 import BibDialog from './components/BibDialog.tsx';
 import CheckDialog from './components/CheckDialog.tsx';
@@ -20,6 +21,7 @@ const matches = (p: Paper, view: View, inProject: Set<string>) => {
     case 'project': return p.projects.some((id) => inProject.has(id));
     case 'none': return !p.projects.length;
     case 'tag': return p.tags.includes(view.tag);
+    case 'itemkind': return kindOf(p) === view.value;
   }
 };
 
@@ -84,7 +86,7 @@ export default function App() {
       if (fulltext.has(p.id)) { snippets.set(p.id, fulltext.get(p.id)!); return true; }
       return false;
     });
-    const val = (p: Paper) => (sort.key === 'authors' ? p.authors[0] ?? '' : String(p[sort.key] ?? '')).toLowerCase();
+    const val = (p: Paper) => (sort.key === 'authors' ? p.authors[0] ?? '' : sort.key === 'kind' ? kindOf(p) : String(p[sort.key] ?? '')).toLowerCase();
     return { papers: list.sort((a, b) => val(a).localeCompare(val(b)) * sort.dir), snippets };
   }, [lib, view, query, sort, fulltext]);
 
@@ -132,6 +134,22 @@ export default function App() {
     refresh();
   };
 
+  // An idea has nothing to look up: create it empty and let the detail pane do the rest.
+  const addIdea = async () => {
+    try {
+      const { paper } = await api.addPaper({
+        meta: { kind: 'note', type: 'misc', title: 'New idea' },
+        projects: project ? [project.id] : [],
+        fetchPdf: false,
+      });
+      refresh();
+      setSelected(paper.id);
+      toast(project ? `Idea added to ${project.name}` : 'Idea added');
+    } catch (e) {
+      toast(`Could not add: ${(e as Error).message}`);
+    }
+  };
+
   const importBib = async (file?: File) => {
     if (!file) return;
     const r = await api.importBib(await file.text(), project?.id);
@@ -166,7 +184,8 @@ export default function App() {
   const exportUrl = `/api/export.bib?download=1${project ? `&project=${project.id}` : ''}`;
   const title = view.kind === 'project' && project ? projectPath(lib.projects, project.id)
     : view.kind === 'status' ? view.status[0].toUpperCase() + view.status.slice(1)
-    : view.kind === 'tag' ? `#${view.tag}` : view.kind === 'none' ? 'No project' : 'All papers';
+    : view.kind === 'itemkind' ? KIND_PLURAL[view.value]
+    : view.kind === 'tag' ? `#${view.tag}` : view.kind === 'none' ? 'No project' : 'All items';
 
   return (
     <div className={`app ${current ? 'has-detail' : ''}`}>
@@ -193,6 +212,7 @@ export default function App() {
             <button className="btn primary" disabled={busy || !adding.trim()}>{busy ? 'Adding…' : 'Add'}</button>
           </form>
           <div className="toolbar-actions">
+            <button className="btn ghost icon" onClick={addIdea} title="Write down an idea (no link needed)">{Icon.bulb}</button>
             <button className="btn ghost icon" onClick={() => pdfRef.current?.click()} title="Add papers from PDF files (or drop PDFs on the list)">{Icon.filePlus}</button>
             {project
               ? <button className="btn ghost bib-btn" onClick={() => setBibFor(project)} title="BibTeX for this folder">{'{}'} .bib</button>

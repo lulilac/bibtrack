@@ -3,7 +3,8 @@
 **A fast, local-first paper library: Zotero's capture and organisation, JabRef's BibTeX workflow, and full access for AI agents.**
 
 Save a paper from any web page with one click, file it into your project folders, search inside every PDF,
-and keep a `.bib` file per project always up to date for LaTeX. Everything lives in a plain JSON file in a
+and keep a `.bib` file per project always up to date for LaTeX. Not everything worth keeping is a paper, so a
+repository, a dataset, a blog post or a plain idea can live in the same folders, labelled for what it is. Everything lives in a plain JSON file in a
 folder you already sync (Dropbox, Syncthing, Nextcloud, …), so every machine sees the same library.
 There's no account and no proprietary cloud.
 
@@ -56,7 +57,8 @@ the browser, and want an agent to do the bookkeeping.
 ## Features
 
 - **Capture:** browser extension and bookmarklet; add by DOI, arXiv ID, URL or title; drop PDFs to create entries (the DOI or arXiv ID is read from the PDF); `.bib` import.
-- **Organise:** nested folders (move, rename, delete); tags (search popup, `t`); read status; 5-star rating; notes.
+- **Papers and everything else:** every entry has a *kind* — **paper**, **web page**, **code**, **dataset** or **idea** — guessed when you capture it (a github.com link is code, a `huggingface.co/datasets` link is a dataset, an arXiv or DOI page is a paper) and one click from being corrected. Filter by kind in the sidebar. Only papers are held to paper standards: the library check never asks a repository for a PDF, a DOI or a publication year, and ideas stay out of the generated `.bib` files.
+- **Organise:** nested folders (move, rename, delete); tags (search popup, `t`); read status; 5-star rating; notes. Ideas need no link at all — the bulb button in the toolbar writes one straight into the current folder.
 - **Search:** instant metadata search plus full-text search inside PDFs, with an "in PDF" snippet.
 - **BibTeX:**
   - `bib/<Folder>.bib` and `bib/library.bib` are kept up to date automatically.
@@ -160,7 +162,7 @@ Add `"env": { "BIBTRACK_DIR": "…" }` (or `env = { … }` for Codex) if your li
 
 | Tool | What it does |
 | --- | --- |
-| `search_papers` | Search metadata, notes, tags, and optionally PDF full text; filter by folder, tag or status |
+| `search_papers` | Search metadata, notes, tags, and optionally PDF full text; filter by folder, tag, kind or status |
 | `get_paper` | All fields of a paper, including notes and folders |
 | `read_pdf` | Text of a paper's PDF, by page range |
 | `add_paper` | Add by DOI, arXiv ID, URL or title, into folders, with tags and notes |

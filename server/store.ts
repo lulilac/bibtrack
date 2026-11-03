@@ -55,7 +55,11 @@ export class Store extends EventEmitter {
 
   private read(file: string): Library {
     const data = JSON.parse(fs.readFileSync(file, 'utf8'));
-    return { ...emptyLibrary(), ...data };
+    const lib: Library = { ...emptyLibrary(), ...data };
+    // Entries written before kinds existed are all papers. Filling it in here rather than with a
+    // one-off migration keeps hand-edited and older-machine files working.
+    lib.papers = lib.papers.map((p) => (p.kind ? p : { ...p, kind: 'paper' }));
+    return lib;
   }
 
   private reload() {

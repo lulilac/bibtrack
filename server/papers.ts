@@ -21,7 +21,7 @@ export function findDuplicate(lib: Library, p: Partial<Paper>) {
 export function blankPaper(p: Partial<Paper>, lib: Library): Paper {
   const t = now();
   const paper: Paper = {
-    id: randomUUID(), type: 'misc', title: '', authors: [], year: '', venue: '', doi: '', arxivId: '', url: '',
+    id: randomUUID(), kind: 'paper', type: 'misc', title: '', authors: [], year: '', venue: '', doi: '', arxivId: '', url: '',
     pdfUrl: '', pdfFile: '', abstract: '', bibtexKey: '', projects: [], tags: [], status: 'unread', rating: 0,
     notes: '', addedAt: t, updatedAt: t,
     ...Object.fromEntries(Object.entries(p).filter(([, v]) => v !== undefined)),

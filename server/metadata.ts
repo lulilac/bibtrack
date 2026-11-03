@@ -1,4 +1,5 @@
 import type { Capture, Paper } from '../shared/types.ts';
+import { detectKind, type Kind } from '../shared/kinds.ts';
 import { formatKey } from '../shared/citekey.ts';
 
 export { formatKey };
@@ -46,10 +47,14 @@ const crossrefType: Record<string, string> = {
   report: 'techreport',
 };
 
+// Crossref registers datasets and software too; it knows better than our URL heuristics.
+const crossrefKind: Record<string, Kind> = { dataset: 'dataset', component: 'dataset', software: 'code' };
+
 function crossrefToPaper(m: any): Partial<Paper> {
   const pdf = (m.link ?? []).find((l: any) => l['content-type'] === 'application/pdf')?.URL ?? '';
   const year = (m.issued ?? m.published ?? m['published-print'] ?? m['published-online'])?.['date-parts']?.[0]?.[0];
   return {
+    ...(crossrefKind[m.type] ? { kind: crossrefKind[m.type] } : {}),
     type: crossrefType[m.type] ?? 'misc',
     title: stripTags(m.title?.[0] ?? ''),
     authors: (m.author ?? []).map((a: any) => (a.family ? `${a.family}${a.given ? ', ' + a.given : ''}` : a.name ?? '')).filter(Boolean),
@@ -144,7 +149,7 @@ export async function enrich(c: Capture): Promise<Partial<Paper>> {
   }
   const pick = (a?: string, b?: string) => (a && a.trim() ? a.trim() : b ?? '');
   const r = remote ?? {};
-  return {
+  const meta: Partial<Paper> = {
     type: r.type ?? 'misc',
     title: pick(r.title, c.title),
     authors: r.authors?.length ? r.authors : (c.authors ?? []).map(normalizeAuthor).filter(Boolean),
@@ -157,6 +162,9 @@ export async function enrich(c: Capture): Promise<Partial<Paper>> {
     abstract: pick(r.abstract, c.abstract),
     notes: c.notes ?? '',
   };
+  // Decide what this is only once everything is merged: the DOI found in the URL, the venue and
+  // the PDF link are all signals, and the caller may have said so outright.
+  return { ...meta, kind: c.kind ?? detectKind(meta, r.kind) };
 }
 
 // ---------- BibTeX ----------

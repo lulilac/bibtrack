@@ -7,6 +7,7 @@ import { libraryDir } from './store.ts';
 import { LibraryService } from './library.ts';
 import { projectPath } from '../shared/projects.ts';
 import type { Paper } from '../shared/types.ts';
+import { KINDS, kindOf } from '../shared/kinds.ts';
 
 // stdout is the MCP channel: send all logging to stderr.
 console.log = console.error;
@@ -18,7 +19,7 @@ const server = new McpServer({ name: 'bibtrack', version: '0.2.0' });
 const json = (data: unknown) => ({ content: [{ type: 'text' as const, text: JSON.stringify(data, null, 1) }] });
 const folders = (p: Paper) => p.projects.map((id) => projectPath(lib.lib.projects, id)).filter(Boolean);
 const summary = (p: Paper) => ({
-  id: p.id, key: p.bibtexKey, title: p.title, authors: p.authors.slice(0, 4).concat(p.authors.length > 4 ? ['…'] : []),
+  id: p.id, key: p.bibtexKey, kind: kindOf(p), title: p.title, authors: p.authors.slice(0, 4).concat(p.authors.length > 4 ? ['…'] : []),
   year: p.year, venue: p.venue, folders: folders(p), tags: p.tags, status: p.status, hasPdf: !!p.pdfFile,
 });
 const full = ({ projects: _p, ...p }: Paper) => ({ ...p, key: p.bibtexKey, folders: folders({ ...p, projects: _p }), hasPdf: !!p.pdfFile });
@@ -36,6 +37,8 @@ const tool = <S extends z.ZodRawShape>(name: string, description: string, schema
 const ref = z.string().describe('Paper id or BibTeX citation key');
 const folderRef = z.string().describe('Folder id or path, e.g. "PhD › Social situation" (">" or "/" also work)');
 const status = z.enum(['unread', 'reading', 'read']);
+const kind = z.enum(KINDS as [string, ...string[]])
+  .describe('What the entry is: paper (literature), web (a page or article), code (a repository), dataset, note (an idea with no source)');
 
 tool('search_papers',
   'Search the library. Matches title, authors, venue, abstract, notes, tags, DOI and citation key; with fulltext=true also the text inside PDFs (returns snippets). Filters can be combined; no query lists everything in scope.',
@@ -44,11 +47,12 @@ tool('search_papers',
     folder: folderRef.optional().describe('Only papers in this folder (including sub-folders)'),
     tag: z.string().optional(),
     status: status.optional(),
+    kind: kind.optional().describe('Only entries of this kind'),
     fulltext: z.boolean().optional().describe('Also search inside PDF text'),
     limit: z.number().int().min(1).max(500).optional().describe('Default 50'),
   },
-  ({ query, folder, tag, status, fulltext, limit }) => {
-    const r = lib.search({ query, project: folder, tag, status, fulltext, limit });
+  ({ query, folder, tag, status, kind, fulltext, limit }) => {
+    const r = lib.search({ query, project: folder, tag, status, kind: kind as Paper['kind'], fulltext, limit });
     return { total: r.total, papers: r.papers.map((p) => ({ ...summary(p), ...(r.snippets.has(p.id) ? { pdfSnippet: r.snippets.get(p.id) } : {}) })) };
   });
 
@@ -72,11 +76,13 @@ tool('add_paper',
     folders: z.array(folderRef).optional(),
     tags: z.array(z.string()).optional(),
     notes: z.string().optional(),
+    kind: kind.optional().describe('Override the detected kind'),
     fetchPdf: z.boolean().optional().describe('Default true'),
   },
-  async ({ input, folders: f, ...opts }) => {
+  async ({ input, folders: f, kind, ...opts }) => {
     const { paper, duplicate } = await lib.addFromInput(input, { ...opts, projects: lib.projectIds(f) });
-    return { duplicate, paper: summary(paper) };
+    const final = kind && kindOf(paper) !== kind ? lib.updatePaper(paper.id, { kind: kind as Paper['kind'] }) : paper;
+    return { duplicate, paper: summary(final) };
   });
 
 tool('update_paper',
@@ -85,12 +91,12 @@ tool('update_paper',
     id: ref,
     fields: z.object({
       title: z.string(), authors: z.array(z.string()).describe('"Last, First" each'), year: z.string(), venue: z.string(),
-      type: z.string().describe('BibTeX entry type: article, inproceedings, misc, book, ...'), doi: z.string(), arxivId: z.string(),
+      kind, type: z.string().describe('BibTeX entry type: article, inproceedings, misc, book, ...'), doi: z.string(), arxivId: z.string(),
       url: z.string(), pdfUrl: z.string(), abstract: z.string(), bibtexKey: z.string(), tags: z.array(z.string()),
       status, rating: z.number().int().min(0).max(5), notes: z.string(),
     }).partial(),
   },
-  ({ id, fields }) => summary(lib.updatePaper(id, fields)));
+  ({ id, fields }) => summary(lib.updatePaper(id, fields as Partial<Paper>)));
 
 tool('set_paper_folders', 'Add a paper to folders and/or remove it from folders.',
   { id: ref, add: z.array(folderRef).optional(), remove: z.array(folderRef).optional() },

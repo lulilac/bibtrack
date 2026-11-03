@@ -25,4 +25,12 @@ export const Icon = {
   filePlus: svg(<><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" /><path d="M14 3v5h5M12 11v6M9 14h6" /></>),
   wand: svg(<><path d="m15 4 5 5L9 20H4v-5z" /><path d="M13 6l5 5" /></>),
   paperclip: svg(<path d="m21 11-8.5 8.5a5 5 0 0 1-7-7L14 4a3.5 3.5 0 0 1 5 5l-8.5 8.5a2 2 0 0 1-3-3L15 7" />),
+  // one per kind
+  paper: svg(<><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" /><path d="M14 3v5h5M9 13h6M9 17h4" /></>),
+  globe: svg(<><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3a15 15 0 0 1 0 18 15 15 0 0 1 0-18" /></>),
+  code: svg(<path d="m9 8-5 4 5 4M15 8l5 4-5 4" />),
+  database: svg(<><ellipse cx="12" cy="6" rx="8" ry="3" /><path d="M4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3" /></>),
+  bulb: svg(<><path d="M9 18h6M10 21h4" /><path d="M8.5 14a5.5 5.5 0 1 1 7 0c-.7.6-1 1.3-1 2H9.5c0-.7-.3-1.4-1-2" /></>),
 };
+
+export const KIND_ICON = { paper: 'paper', web: 'globe', code: 'code', dataset: 'database', note: 'bulb' } as const;

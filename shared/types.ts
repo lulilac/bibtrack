@@ -1,3 +1,5 @@
+import type { Kind } from './kinds.ts';
+
 export type Status = 'unread' | 'reading' | 'read';
 
 export interface Project {
@@ -11,6 +13,7 @@ export interface Project {
 
 export interface Paper {
   id: string;
+  kind: Kind; // what it is: paper, web page, code, dataset, idea
   type: string; // bibtex entry type: article, inproceedings, misc, ...
   title: string;
   authors: string[]; // "Last, First"
@@ -50,6 +53,7 @@ export const DEFAULT_CITEKEY_PATTERN = '[auth:lower][year][veryshorttitle:lower]
 
 // What the bookmarklet / "add" box sends
 export interface Capture {
+  kind?: Kind;
   title?: string;
   authors?: string[];
   year?: string;

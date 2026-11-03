@@ -10,6 +10,7 @@ the user's paper library. Edits are saved immediately; open web UIs refresh live
 
 **Identifying things**
 - **Papers:** by `id` or citation key (`bibtexKey`, e.g. `vaswani2017attention`). Prefer the citation key when you show papers to the user; it's what they `\cite`.
+- **Kinds:** not every entry is literature. `kind` is one of `paper`, `web`, `code`, `dataset`, `note` (an idea with no source), guessed on capture from the URL and the identifiers. Filter with `search_papers {kind}`, and set it with `add_paper {kind}` / `update_paper` when the guess is wrong. Only `paper` entries are expected to have authors, a year, a DOI and a PDF; `note` entries are left out of the generated `.bib` files.
 - **Folders:** by id or path, e.g. `"PhD › Social situation"`. You can also write `>` or `/` as the separator, or use a unique folder name on its own.
 - **Folder contents:** a folder includes its sub-folders when searching or exporting. A paper can be in several folders.
 
@@ -29,7 +30,7 @@ the user's paper library. Edits are saved immediately; open web UIs refresh live
   3. For broken entries: `find_metadata {id}` returns candidates, then apply the right one with `update_paper`. Show the user the candidate before overwriting metadata.
 
 **Conventions**
-- Authors are `"Last, First"` strings; `year` is a string; `type` is a BibTeX entry type (`article`, `inproceedings`, `misc`, …).
+- Authors are `"Last, First"` strings; `year` is a string; `type` is a BibTeX entry type (`article`, `inproceedings`, `misc`, …), which is separate from `kind`: a preprint and a journal article are both `kind: paper`.
 - `notes` is free text. Papers imported from Zotero contain a `Highlights (from Zotero):` section with the user's PDF highlights as `> quote (p. N)`. Append to notes; don't replace them unless asked.
 - `status`: `unread` | `reading` | `read`. `rating` is 0–5.
 - Ask before bulk-destructive actions: deleting folders or papers, merging, or regenerating citation keys. Deleted papers are tombstoned and their PDFs stay on disk, but `\cite` keys in the user's documents may break.

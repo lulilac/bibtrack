@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { api, authorsShort, splitList, type Paper, type Project } from '../api.ts';
 import ProjectPicker from './ProjectPicker.tsx';
 import { Icon } from '../icons.tsx';
+import { KINDS, KIND_LABEL, kindOf, type Kind } from '../../../shared/kinds.ts';
 
 // Text field that keeps its own value while focused and saves on blur (or debounced, for notes).
 function Field({ label, value, onSave, multiline, rows = 2, debounce, className }: {
@@ -105,7 +106,10 @@ export default function PaperDetail({ paper, projects, onDelete, toast }: {
   const [dragging, setDragging] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
   const save = (changes: Partial<Paper>) => api.updatePaper(paper.id, changes).catch((e) => toast(e.message));
-  const incomplete = !paper.authors.length || !paper.year || (!paper.doi && !paper.arxivId);
+  const kind = kindOf(paper);
+  // Only literature is expected to carry authors, a year and an identifier, so only literature
+  // gets nagged about missing ones.
+  const incomplete = kind === 'paper' && (!paper.authors.length || !paper.year || (!paper.doi && !paper.arxivId));
 
   const upload = async (file?: File) => {
     if (!file) return;
@@ -130,7 +134,7 @@ export default function PaperDetail({ paper, projects, onDelete, toast }: {
         {!paper.pdfFile && paper.pdfUrl && (
           <button className="btn" onClick={() => api.fetchPdf(paper.id).then(() => toast('PDF downloaded'), (e) => toast(e.message))}>{Icon.download}Get PDF</button>
         )}
-        {!paper.pdfFile && <button className="btn" onClick={() => fileInput.current?.click()}>{Icon.paperclip}Attach PDF</button>}
+        {!paper.pdfFile && kind !== 'note' && <button className="btn" onClick={() => fileInput.current?.click()}>{Icon.paperclip}Attach PDF</button>}
         {paper.url && <a className="btn" href={paper.url} target="_blank" rel="noreferrer" title="Open web page">{Icon.link}Page</a>}
         <button className="btn" onClick={copyBib} title="Copy BibTeX">{Icon.copy}BibTeX</button>
         <button className="btn ghost danger icon" onClick={() => onDelete(paper)} title="Delete (Del)" style={{ marginLeft: 'auto' }}>{Icon.trash}</button>
@@ -155,8 +159,14 @@ export default function PaperDetail({ paper, projects, onDelete, toast }: {
       <Field label="Authors (separated by ;)" value={paper.authors.join('; ')}
         onSave={(v) => save({ authors: v.split(/\s*;\s*/).filter(Boolean) })} />
       <div className="row">
+        <label className="kind-field">
+          Kind
+          <select value={kind} onChange={(e) => save({ kind: e.target.value as Kind })}>
+            {KINDS.map((k) => <option key={k} value={k}>{KIND_LABEL[k]}</option>)}
+          </select>
+        </label>
         <Field label="Year" value={paper.year} onSave={(year) => save({ year })} />
-        <Field label="Venue" value={paper.venue} onSave={(venue) => save({ venue })} />
+        <Field label={kind === 'paper' ? 'Venue' : 'Source'} value={paper.venue} onSave={(venue) => save({ venue })} />
       </div>
       <label>Projects</label>
       <ProjectPicker projects={projects} selected={paper.projects} onChange={(ids) => save({ projects: ids })} allowCreate />

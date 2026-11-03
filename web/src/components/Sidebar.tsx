@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { api, type Library, type Project } from '../api.ts';
 import MoveDialog from './MoveDialog.tsx';
-import { Icon } from '../icons.tsx';
+import { Icon, KIND_ICON } from '../icons.tsx';
+import { KINDS, KIND_PLURAL, kindOf, type Kind } from '../../../shared/kinds.ts';
 import { ThemeSwitch } from '../theme.tsx';
 import { projectPath, projectTree, subtreeIds } from '../../../shared/projects.ts';
 
@@ -17,7 +18,8 @@ export type View =
   | { kind: 'status'; status: 'unread' | 'reading' | 'read' }
   | { kind: 'project'; id: string }
   | { kind: 'none' }
-  | { kind: 'tag'; tag: string };
+  | { kind: 'tag'; tag: string }
+  | { kind: 'itemkind'; value: Kind };
 
 export const sameView = (a: View, b: View) => JSON.stringify(a) === JSON.stringify(b);
 
@@ -77,7 +79,7 @@ export default function Sidebar({ lib, view, setView, onOpenTags, onOpenCheck, o
     <nav className="sidebar">
       <div className="brand"><span className="brand-mark">b</span>bibtrack</div>
       <ul>
-        <Item v={{ kind: 'all' }} label="All papers" n={lib.papers.length} icon="library" />
+        <Item v={{ kind: 'all' }} label="All items" n={lib.papers.length} icon="library" />
         <Item v={{ kind: 'status', status: 'unread' }} label="Unread" n={count((p) => p.status === 'unread')} icon="inbox" />
         <Item v={{ kind: 'status', status: 'reading' }} label="Reading" n={count((p) => p.status === 'reading')} icon="book" />
         <Item v={{ kind: 'none' }} label="No project" n={count((p) => !p.projects.length)} icon="folderOff" />
@@ -91,6 +93,13 @@ export default function Sidebar({ lib, view, setView, onOpenTags, onOpenCheck, o
           <span className="grow">Check library</span>
           {issueCount > 0 && <span className="count badge">{issueCount}</span>}
         </li>
+      </ul>
+      <h4>Kinds</h4>
+      <ul>
+        {/* Only kinds actually in the library, so a literature-only library stays uncluttered. */}
+        {KINDS.map((k) => [k, count((p) => kindOf(p) === k)] as const)
+          .filter(([k, n]) => n > 0 || k === 'paper')
+          .map(([k, n]) => <Item key={k} v={{ kind: 'itemkind', value: k }} label={KIND_PLURAL[k]} n={n} icon={KIND_ICON[k]} />)}
       </ul>
       <h4>Projects</h4>
       <ul>

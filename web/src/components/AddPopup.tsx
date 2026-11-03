@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { api, splitList, useLibrary, type Capture, type Paper } from '../api.ts';
 import ProjectPicker from './ProjectPicker.tsx';
+import { KINDS, KIND_LABEL, kindOf, type Kind } from '../../../shared/kinds.ts';
 
 const LAST_PROJECTS = 'bibtrack.lastProjects';
 
@@ -25,6 +26,7 @@ export default function AddPopup() {
   const [projects, setProjects] = useState<string[]>(() => JSON.parse(localStorage.getItem(LAST_PROJECTS) ?? '[]'));
   const [tags, setTags] = useState('');
   const [fetchPdf, setFetchPdf] = useState(true);
+  const kind = kindOf(meta);
   const [state, setState] = useState<'idle' | 'saving' | 'saved' | string>('idle');
   const saveRef = useRef<HTMLButtonElement>(null);
 
@@ -32,7 +34,7 @@ export default function AddPopup() {
     api.lookup({ capture }).then(
       ({ meta: m, duplicate: d }) => {
         // Keep anything the user already edited; fill the rest from the lookup.
-        setMeta((cur) => ({ ...m, notes: cur.notes ?? m.notes }));
+        setMeta((cur) => ({ ...m, notes: cur.notes ?? m.notes, ...(cur.kind ? { kind: cur.kind } : {}) }));
         setDuplicate(d);
         if (d) setProjects((p) => [...new Set([...p, ...d.projects])]);
       },
@@ -48,7 +50,7 @@ export default function AddPopup() {
     setState('saving');
     try {
       localStorage.setItem(LAST_PROJECTS, JSON.stringify(validProjects));
-      await api.addPaper({ meta, projects: validProjects, tags: splitList(tags), fetchPdf });
+      await api.addPaper({ meta, projects: validProjects, tags: splitList(tags), fetchPdf: fetchPdf && kind === 'paper' });
       setState('saved');
       setTimeout(close, 700);
     } catch (e) {
@@ -76,25 +78,37 @@ export default function AddPopup() {
         {looking && <span className="muted"> · looking up metadata…</span>}
       </header>
       {duplicate && <div className="banner">Already in your library — saving will add it to the selected projects.</div>}
+      <div className="kind-pick">
+        {/* Guessed from the page; one click to correct it. */}
+        {KINDS.map((k) => (
+          <button key={k} type="button" className={`seg ${kind === k ? 'on' : ''}`} onClick={() => setMeta({ ...meta, kind: k })}>
+            {KIND_LABEL[k]}
+          </button>
+        ))}
+      </div>
       <label>Title<textarea rows={2} value={meta.title ?? ''} onChange={set('title')} /></label>
       <label><span>Authors <span className="muted">(separated by ;)</span></span>
         <input value={(meta.authors ?? []).join('; ')} onChange={set('authors')} /></label>
       <div className="row">
         <label>Year<input value={meta.year ?? ''} onChange={set('year')} /></label>
-        <label className="grow">Venue<input value={meta.venue ?? ''} onChange={set('venue')} /></label>
+        <label className="grow">{kind === 'paper' ? 'Venue' : 'Source'}<input value={meta.venue ?? ''} onChange={set('venue')} /></label>
       </div>
-      <div className="row">
-        <label className="grow">DOI<input value={meta.doi ?? ''} onChange={set('doi')} /></label>
-        <label>arXiv<input value={meta.arxivId ?? ''} onChange={set('arxivId')} /></label>
-      </div>
+      {kind === 'paper' && (
+        <div className="row">
+          <label className="grow">DOI<input value={meta.doi ?? ''} onChange={set('doi')} /></label>
+          <label>arXiv<input value={meta.arxivId ?? ''} onChange={set('arxivId')} /></label>
+        </div>
+      )}
       <label>Projects</label>
       {lib && <ProjectPicker projects={lib.projects} selected={validProjects} onChange={setProjects} allowCreate />}
       <label><span>Tags <span className="muted">(comma separated)</span></span><input value={tags} onChange={(e) => setTags(e.target.value)} /></label>
       <label>Notes<textarea rows={3} value={meta.notes ?? ''} onChange={set('notes')} /></label>
-      <label className="check">
-        <input type="checkbox" checked={fetchPdf} onChange={(e) => setFetchPdf(e.target.checked)} disabled={!meta.pdfUrl} />
-        Download PDF {meta.pdfUrl ? <span className="muted">({new URL(meta.pdfUrl, location.href).host})</span> : <span className="muted">(no PDF link found)</span>}
-      </label>
+      {kind === 'paper' && (
+        <label className="check">
+          <input type="checkbox" checked={fetchPdf} onChange={(e) => setFetchPdf(e.target.checked)} disabled={!meta.pdfUrl} />
+          Download PDF {meta.pdfUrl ? <span className="muted">({new URL(meta.pdfUrl, location.href).host})</span> : <span className="muted">(no PDF link found)</span>}
+        </label>
+      )}
       <footer>
         <span className="muted">{state.startsWith('Error') ? <span className="error">{state}</span> : 'Enter to save · Esc to close'}</span>
         <button ref={saveRef} className="primary" onClick={save} disabled={state === 'saving' || state === 'saved' || !meta.title}>

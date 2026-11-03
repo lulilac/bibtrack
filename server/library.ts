@@ -10,6 +10,7 @@ import { downloadPdf, savePdf } from './pdf.ts';
 import { FullText, extractPdf } from './fulltext.ts';
 import { PROJECT_COLORS, blankPaper, findDuplicate, now, uniq } from './papers.ts';
 import { projectPath, projectTree, subtreeIds } from '../shared/projects.ts';
+import { type Kind, kindOf } from '../shared/kinds.ts';
 import { DEFAULT_CITEKEY_PATTERN, type Capture, type Issue, type Library, type LibrarySettings, type Paper, type Project } from '../shared/types.ts';
 
 export class HttpError extends Error {
@@ -248,11 +249,12 @@ export class LibraryService {
 
   // ---------- search ----------
 
-  search(opts: { query?: string; project?: string; tag?: string; status?: Paper['status']; fulltext?: boolean; limit?: number }) {
+  search(opts: { query?: string; project?: string; tag?: string; status?: Paper['status']; kind?: Kind; fulltext?: boolean; limit?: number }) {
     const inProject = opts.project ? subtreeIds(this.lib.projects, this.project(opts.project).id) : null;
     let papers = this.lib.papers.filter((p) =>
       (!inProject || p.projects.some((x) => inProject.has(x))) &&
       (!opts.tag || p.tags.some((t) => t.toLowerCase() === opts.tag!.toLowerCase())) &&
+      (!opts.kind || kindOf(p) === opts.kind) &&
       (!opts.status || p.status === opts.status));
     const terms = (opts.query ?? '').toLowerCase().split(/\s+/).filter(Boolean);
     const snippets = new Map<string, string>();
@@ -334,7 +336,11 @@ export class LibraryService {
   }
 
   exportBib(opts: { project?: string; ids?: string[] }) {
-    return this.papersFor(opts).map(toBibtex).join('\n\n') + '\n';
+    // Ideas have no citable identity, so they stay out of the generated .bib files. Asking for
+    // specific ids is explicit enough to override that.
+    const papers = this.papersFor(opts);
+    const list = opts.ids ? papers : papers.filter((p) => kindOf(p) !== 'note');
+    return list.map(toBibtex).join('\n\n') + '\n';
   }
 
   importBib(text: string, project?: string) {
@@ -451,15 +457,19 @@ export class LibraryService {
     }
 
     for (const p of papers) {
-      const missing = (['title', 'authors', 'year'] as const).filter((k) => (k === 'authors' ? !p.authors.length : !p[k].trim()));
-      if (missing.length) issues.push({ kind: 'missing', id: p.id, fields: missing });
+      // A web page or a repository has no authors, no year, no DOI and no PDF, and that is not a
+      // defect: only literature is held to the full standard. Everything needs a title.
+      const isPaper = kindOf(p) === 'paper';
+      const required = isPaper ? (['title', 'authors', 'year'] as const) : (['title'] as const);
+      const missing = required.filter((k) => (k === 'authors' ? !p.authors.length : !p[k].trim()));
+      if (missing.length) issues.push({ kind: 'missing', id: p.id, fields: [...missing] });
       const flag = (field: string, value: string) => issues.push({ kind: 'suspicious', id: p.id, field, value });
       if (suspiciousTitle(p.title)) flag('title', p.title);
       if (PLACEHOLDER.test(p.venue.trim())) flag('venue', p.venue);
       if (p.authors.some((a) => PLACEHOLDER.test(a.replace(/[, ]/g, '')))) flag('authors', p.authors.join('; '));
       if (p.year && (!/^\d{4}$/.test(p.year) || +p.year < 1500 || +p.year > year + 1)) flag('year', p.year);
-      if (!p.pdfFile) issues.push({ kind: 'no-pdf', id: p.id });
-      if (!p.doi && !p.arxivId) issues.push({ kind: 'no-identifier', id: p.id });
+      if (isPaper && !p.pdfFile) issues.push({ kind: 'no-pdf', id: p.id });
+      if (isPaper && !p.doi && !p.arxivId) issues.push({ kind: 'no-identifier', id: p.id });
     }
     return issues;
   }
