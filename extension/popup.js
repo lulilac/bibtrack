@@ -30,9 +30,12 @@ async function capture(tab) {
 
 function askForServer() {
   const hint = isLocal(server)
-    ? 'Start it with <code>npm start</code>, or point the add-on at a remote bibtrack.'
+    ? 'Start it with npm start, or point the add-on at a remote bibtrack.'
     : 'Check the address, or that you are online.';
-  msg.innerHTML = `Can't reach bibtrack at <code>${server}</code>.<br><br>${hint}`;
+  const code = document.createElement('code');
+  code.textContent = server;
+  msg.replaceChildren("Can't reach bibtrack at ", code, '.', document.createElement('br'),
+    document.createElement('br'), hint);
   input.value = server;
   setup.style.display = 'flex';
 }
@@ -40,9 +43,12 @@ function askForServer() {
 async function main() {
   server = clean((await ext.storage.local.get('server')).server || DEFAULT_SERVER);
   const [tab] = await ext.tabs.query({ active: true, currentWindow: true });
+  // Only probe a local server. A remote one is behind a password, so probing it would ask for
+  // credentials once for the probe and again for the tab; just open the tab and let the
+  // browser report any problem. Change the address in about:addons if it is wrong.
   const [data, up] = await Promise.all([
     capture(tab),
-    fetch(`${server}/api/library`, { mode: 'no-cors' }).then(() => true, () => false),
+    isLocal(server) ? fetch(`${server}/api/library`, { mode: 'no-cors' }).then(() => true, () => false) : true,
   ]);
   if (!up) return askForServer();
 

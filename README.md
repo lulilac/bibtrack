@@ -110,7 +110,8 @@ systemctl --user daemon-reload && systemctl --user enable --now bibtrack
     The keys come from https://addons.mozilla.org/developers/addon/api/key/.
 
   The extension talks to `http://localhost:5577` by default. If your server is somewhere else,
-  open the popup once while it is unreachable and enter the address; it is remembered per browser.
+  open the popup once while it is unreachable and enter the address, or set it any time in
+  `about:addons` → bibtrack → *Preferences*; it is remembered per browser.
   A local server is shown inside the popup, a remote one opens in a tab, because browsers refuse to
   show an HTTP auth prompt inside a frame.
 - **Bookmarklet:** open http://localhost:5577/bookmarklet and drag the button to your bookmarks bar.

@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "bibtrack",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Save the paper you are reading to your bibtrack library.",
   "icons": { "48": "icons/48.png", "96": "icons/96.png", "128": "icons/128.png" },
   "action": {
@@ -16,7 +16,12 @@
   "content_security_policy": {
     "extension_pages": "script-src 'self'; frame-src http://localhost:5577 http://127.0.0.1:5577"
   },
+  "options_ui": { "page": "options.html", "open_in_tab": false },
   "browser_specific_settings": {
-    "gecko": { "id": "bibtrack@local", "strict_min_version": "115.0" }
+    "gecko": {
+      "id": "bibtrack@local",
+      "strict_min_version": "115.0",
+      "data_collection_permissions": { "required": ["none"] }
+    }
   }
 }
