@@ -162,6 +162,7 @@ main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .toolbar-actions { display: flex; gap: 2px; flex: none; }
 .banner { margin: 10px 20px; padding: 10px 14px; border-radius: 8px; background: var(--bg-hover); }
 .popup .banner { margin: 0; }
+.banner.saved-already { border-color: #2ea043; background: rgba(46, 160, 67, .12); }
 
 /* ---------- table ---------- */
 .table-wrap { overflow: auto; flex: 1; }

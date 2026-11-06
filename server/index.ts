@@ -93,6 +93,13 @@ app.get('/api/search', handle((req) => {
 
 app.get('/api/check', handle(() => lib.checkLibrary()));
 
+// "Is this page already saved?" - the add-on asks this for every page you visit, so it answers
+// with the little the toolbar needs rather than the whole entry.
+app.get('/api/exists', handle((req) => {
+  const p = req.query.url ? lib.findByUrl(String(req.query.url)) : null;
+  return p ? { found: true, id: p.id, title: p.title, kind: p.kind, key: p.bibtexKey } : { found: false };
+}));
+
 // ---------- folders ----------
 
 app.post('/api/projects', handle((req) => lib.createProject(req.body.name, req.body.parentId)));

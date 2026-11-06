@@ -249,6 +249,32 @@ export class LibraryService {
 
   // ---------- search ----------
 
+  /**
+   * Is this page already in the library? Used by the browser add-on to mark the toolbar icon, so
+   * it has to be cheap and forgiving: publishers hand out the same paper under http/https, with
+   * and without www, with tracking parameters, and arXiv under /abs/, /pdf/ and /html/.
+   */
+  findByUrl(url: string): Paper | null {
+    const trim = (u: string) => {
+      try {
+        const x = new URL(u);
+        const path = x.pathname.replace(/\/+$/, '').replace(/^\/(abs|pdf|html)\//, '/');
+        return `${x.hostname.replace(/^www\./, '').toLowerCase()}${path.toLowerCase()}`;
+      } catch {
+        return u.trim().toLowerCase();
+      }
+    };
+    const key = trim(url);
+    if (!key) return null;
+    const doi = cleanDoi(url.split(/[?#]/)[0].replace(/\.pdf$/i, ''));
+    const arxivId = url.match(ARXIV_RE)?.[1] ?? '';
+    return this.lib.papers.find((p) =>
+      (p.url && trim(p.url) === key) ||
+      (p.pdfUrl && trim(p.pdfUrl) === key) ||
+      (!!doi && p.doi.toLowerCase() === doi.toLowerCase()) ||
+      (!!arxivId && p.arxivId === arxivId)) ?? null;
+  }
+
   search(opts: { query?: string; project?: string; tag?: string; status?: Paper['status']; kind?: Kind; fulltext?: boolean; limit?: number }) {
     const inProject = opts.project ? subtreeIds(this.lib.projects, this.project(opts.project).id) : null;
     let papers = this.lib.papers.filter((p) =>

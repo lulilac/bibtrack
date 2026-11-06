@@ -3,23 +3,55 @@
   <head>
     <meta charset="utf-8" />
     <style>
-      body { font: 14px system-ui, sans-serif; margin: 0; padding: 16px; }
-      label { display: block; margin-bottom: 6px; }
-      .row { display: flex; gap: 8px; }
-      input { flex: 1; font: inherit; padding: 6px 8px; min-width: 20em; }
-      button { font: inherit; padding: 6px 14px; }
-      #saved { color: #2a7; margin-top: 8px; min-height: 1.2em; }
-      small { color: #888; display: block; margin-top: 10px; }
+      :root { color-scheme: light dark; }
+      body { font: 14px system-ui, sans-serif; margin: 0; padding: 18px; min-width: 24em; }
+      h3 { margin: 0 0 4px; font-size: 14px; }
+      h3:not(:first-of-type) { margin-top: 24px; }
+      p.hint { margin: 0 0 10px; color: #888; font-size: 12.5px; line-height: 1.45; }
+      .row { display: flex; gap: 8px; align-items: center; }
+      input { flex: 1; font: inherit; padding: 6px 8px; min-width: 0; }
+      button { font: inherit; padding: 6px 14px; cursor: pointer; }
+      .note { margin-top: 8px; min-height: 1.3em; font-size: 12.5px; }
+      .ok { color: #2ea043; }
+      .warn { color: #d29922; }
+      fieldset { border: 1px solid rgba(127,127,127,.35); border-radius: 6px; padding: 12px; margin: 0; }
+      legend { font-size: 12px; color: #888; padding: 0 4px; }
+      .creds { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
     </style>
   </head>
   <body>
-    <label for="server">bibtrack server address</label>
+    <h3>bibtrack server</h3>
+    <p class="hint">A local server opens inside the toolbar popup; a remote one does too, falling back
+      to its own window if the browser has no password for it yet.</p>
     <div class="row">
       <input id="server" type="url" spellcheck="false" placeholder="http://localhost:5577" />
       <button id="save">Save</button>
     </div>
-    <div id="saved"></div>
-    <small>A local server opens inside the toolbar popup; a remote one opens in a new tab.</small>
+    <div class="note" id="savedNote"></div>
+
+    <h3>Tick already-saved pages</h3>
+    <p class="hint">Puts a green tick on the toolbar icon when the page you are on is already in your
+      library. It needs permission to read tab addresses and to reach your server in the background —
+      your server only, asked for when you turn this on.</p>
+    <div class="row">
+      <button id="toggle">Turn on</button>
+      <span class="note" id="indNote"></span>
+    </div>
+
+    <fieldset style="margin-top:14px">
+      <legend>Sign-in for the tick (optional)</legend>
+      <p class="hint" style="margin-top:0">Only needed if your server asks for a password and the tick
+        never appears. Stored unencrypted in this browser's add-on storage.</p>
+      <div class="creds">
+        <input id="user" type="text" autocomplete="off" spellcheck="false" placeholder="username" />
+        <input id="pass" type="password" autocomplete="off" placeholder="password" />
+      </div>
+      <div class="row" style="margin-top:8px">
+        <button id="saveCreds">Save sign-in</button>
+        <button id="clearCreds">Forget</button>
+        <span class="note" id="credNote"></span>
+      </div>
+    </fieldset>
     <script src="options.js" type="module"></script>
   </body>
 </html>

@@ -8,6 +8,11 @@ const LAST_PROJECTS = 'bibtrack.lastProjects';
 // Inside the toolbar extension we are an iframe: ask the extension popup to close itself.
 const close = () => (window.parent !== window ? window.parent.postMessage('bibtrack:close', '*') : window.close());
 
+// Tell the embedder we really loaded. Behind a password a frame can come back as the browser's
+// own 401 page, which looks identical from the outside; this message is the difference, and the
+// add-on falls back to its own window when it never arrives.
+const announce = () => { if (window.parent !== window) window.parent.postMessage('bibtrack:ready', '*'); };
+
 function readCapture(): Capture {
   try {
     return JSON.parse(decodeURIComponent(location.hash.slice(1)));
@@ -40,6 +45,7 @@ export default function AddPopup() {
       },
       () => {},
     ).finally(() => setLooking(false));
+    announce();
     saveRef.current?.focus();
   }, [capture]);
 
@@ -77,7 +83,11 @@ export default function AddPopup() {
         <span className="brand-mark">b</span>Save to bibtrack
         {looking && <span className="muted"> · looking up metadata…</span>}
       </header>
-      {duplicate && <div className="banner">Already in your library — saving will add it to the selected projects.</div>}
+      {duplicate && (
+        <div className="banner saved-already">
+          <strong>Already saved.</strong> Saving again just files it into the folders you pick below.
+        </div>
+      )}
       <div className="kind-pick">
         {/* Guessed from the page; one click to correct it. */}
         {KINDS.map((k) => (

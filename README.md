@@ -114,8 +114,14 @@ systemctl --user daemon-reload && systemctl --user enable --now bibtrack
   The extension talks to `http://localhost:5577` by default. If your server is somewhere else,
   open the popup once while it is unreachable and enter the address, or set it any time in
   `about:addons` → bibtrack → *Preferences*; it is remembered per browser.
-  A local server is shown inside the toolbar popup; a remote one opens in a small window of its
-  own, because browsers refuse to show an HTTP auth prompt inside a frame.
+  The add form opens inside the toolbar popup. If your server is behind a password and the browser
+  has not got it yet, the popup falls back to a small window of its own, because browsers refuse to
+  show an HTTP auth prompt inside a frame; sign in once and the popup works from then on.
+
+  *Preferences* can also turn on a green tick over the toolbar icon when the page you are on is
+  already in your library. That one is opt-in: it needs permission to read tab addresses and to
+  reach your server in the background, asked for at the moment you enable it, for your server only.
+  The icons are drawn by `extension/icons/make-icons.py`.
 - **Bookmarklet:** open http://localhost:5577/bookmarklet and drag the button to your bookmarks bar.
 
 ### Migrating from Zotero

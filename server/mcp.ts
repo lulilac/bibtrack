@@ -56,6 +56,12 @@ tool('search_papers',
     return { total: r.total, papers: r.papers.map((p) => ({ ...summary(p), ...(r.snippets.has(p.id) ? { pdfSnippet: r.snippets.get(p.id) } : {}) })) };
   });
 
+tool('find_by_url', 'Look up one entry by its web address (or PDF link, DOI or arXiv URL). Use it to check whether a page is already in the library before adding it.',
+  { url: z.string() }, ({ url }) => {
+    const p = lib.findByUrl(url);
+    return p ? { found: true, paper: summary(p) } : { found: false };
+  });
+
 tool('get_paper', 'All metadata of one paper, including abstract, notes (with PDF highlights imported from Zotero), URLs and folders.',
   { id: ref }, ({ id }) => full(lib.paper(id)));
 
