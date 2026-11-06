@@ -6,21 +6,35 @@
       html, body { margin: 0; width: 520px; height: 590px; overflow: hidden; background: #fff; color: #212121; }
       @media (prefers-color-scheme: dark) { html, body { background: #212121; color: #fff; } }
       iframe { border: 0; width: 100%; height: 100%; display: none; }
-      #msg { font: 14px system-ui, sans-serif; padding: 24px; }
-      code { background: rgba(127,127,127,.2); padding: 1px 4px; border-radius: 4px; }
-      #setup { display: none; gap: 8px; padding: 0 24px 24px; font: 14px system-ui, sans-serif; }
-      #setup input { flex: 1; min-width: 0; padding: 6px 8px; font: inherit; color: inherit;
-        background: transparent; border: 1px solid rgba(127,127,127,.5); border-radius: 4px; }
-      #setup button { padding: 6px 12px; font: inherit; cursor: pointer; border-radius: 4px;
+      #msg { font: 14px system-ui, sans-serif; padding: 24px 24px 12px; }
+      .panel { display: none; flex-direction: column; gap: 8px; padding: 0 24px 24px; font: 14px system-ui, sans-serif; }
+      .panel .row { display: flex; gap: 8px; }
+      .panel input { flex: 1; min-width: 0; padding: 7px 9px; font: inherit; color: inherit;
+        background: transparent; border: 1px solid rgba(127,127,127,.5); border-radius: 5px; }
+      .panel button { padding: 7px 14px; font: inherit; cursor: pointer; border-radius: 5px;
         border: 1px solid rgba(127,127,127,.5); background: rgba(127,127,127,.15); color: inherit; }
+      .panel a { font-size: 12.5px; color: #888; cursor: pointer; text-decoration: underline; align-self: flex-start; }
     </style>
   </head>
   <body>
     <div id="msg">Reading page…</div>
-    <div id="setup">
-      <input id="server" type="url" spellcheck="false" placeholder="https://bibtrack.example.org" />
-      <button id="save">Save</button>
+
+    <div id="setup" class="panel">
+      <div class="row">
+        <input id="server" type="url" spellcheck="false" placeholder="https://bibtrack.example.org" />
+        <button id="save">Save</button>
+      </div>
     </div>
+
+    <div id="signin" class="panel">
+      <div class="row"><input id="user" type="text" autocomplete="username" spellcheck="false" placeholder="username" /></div>
+      <div class="row">
+        <input id="pass" type="password" autocomplete="current-password" placeholder="password" />
+        <button id="signinBtn">Sign in</button>
+      </div>
+      <a id="changeServer">Use a different server</a>
+    </div>
+
     <iframe id="frame"></iframe>
     <script type="module" src="popup.js"></script>
   </body>

@@ -112,8 +112,10 @@ systemctl --user daemon-reload && systemctl --user enable --now bibtrack
     The keys come from https://addons.mozilla.org/developers/addon/api/key/.
 
   The extension talks to `http://localhost:5577` by default. If your server is somewhere else,
-  open the popup once while it is unreachable and enter the address, or set it any time in
-  `about:addons` → bibtrack → *Preferences*; it is remembered per browser.
+  copy `extension/config.example.js` to `extension/config.local.js` (gitignored) and put your
+  address in it before building, so a fresh install needs no setup. You can also set it from the
+  popup, or any time in `about:addons` → bibtrack → *Preferences*; it is remembered per browser.
+  When the server asks for a password the popup asks for it too, signs in once and remembers it.
   The add form opens inside the toolbar popup. If your server is behind a password and the browser
   has not got it yet, the popup falls back to a small window of its own, because browsers refuse to
   show an HTTP auth prompt inside a frame; sign in once and the popup works from then on.

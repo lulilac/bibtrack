@@ -1,7 +1,13 @@
 // Preferences: the server address, and the already-saved tick (which needs permissions the
 // capture button does not, so it is opt-in and asks for them here, on a real click).
 const ext = globalThis.browser ?? globalThis.chrome;
-const DEFAULT_SERVER = 'http://localhost:5577';
+let DEFAULT_SERVER = 'http://localhost:5577';
+try {
+  const mod = await import('./config.local.js');
+  if (mod?.SERVER) DEFAULT_SERVER = mod.SERVER;
+} catch {
+  // No local config: localhost it is.
+}
 
 const $ = (id) => document.getElementById(id);
 const clean = (url) => url.trim().replace(/\/+$/, '');
@@ -12,7 +18,7 @@ const flash = (el, text, cls = 'ok') => {
 };
 
 const stored = await ext.storage.local.get(['server', 'indicator', 'user', 'pass']);
-$('server').value = stored.server || '';
+$('server').value = stored.server || DEFAULT_SERVER;
 $('user').value = stored.user || '';
 $('pass').value = stored.pass || '';
 

@@ -5,7 +5,9 @@
 // bibtrack server from the background. Both are asked for at that point, for your server only.
 
 const ext = globalThis.browser ?? globalThis.chrome;
-const DEFAULT_SERVER = 'http://localhost:5577';
+let DEFAULT_SERVER = 'http://localhost:5577';
+// Same optional local default the popup uses (see config.example.js).
+import('./config.local.js').then((m) => { if (m?.SERVER) DEFAULT_SERVER = m.SERVER; }, () => {});
 const PLAIN = { 16: 'icons/16.png', 32: 'icons/32.png', 48: 'icons/48.png' };
 const SAVED = { 16: 'icons/16-saved.png', 32: 'icons/32-saved.png', 48: 'icons/48-saved.png' };
 const DEFAULT_TITLE = 'Save to bibtrack (Alt+Shift+B)';
